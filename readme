@@ -1,0 +1,10 @@
+所有的训练和测试都用的相同的数据集
+训练集采用的是（urban100和Sun-Hays80组成）验证集采用的是Set14组成 测试集去掉了原始数据集中的灰色图
+
+首先运行SRGAN中的train.py 进行SRGAN的训练
+batchsize 为32 epoch为100
+其次运行ESRGAN中的train.py 进行ESRGAN的训练
+batchsize为8 epoch 为100
+最终基于ESRGAN的结构框架进行知识蒸馏 以原始23个block的ESRGAN为teacher  以6个block的ESRGAN 为student 进行知识蒸馏
+
+
