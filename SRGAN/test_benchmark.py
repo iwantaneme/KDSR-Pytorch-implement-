@@ -14,22 +14,30 @@ import pytorch_ssim
 from data_utils import TestDatasetFromFolder, display_transform
 from model import Generator
 
-parser = argparse.ArgumentParser(description='Test Benchmark Datasets')
-parser.add_argument('--upscale_factor', default=4, type=int, help='super resolution upscale factor')
-parser.add_argument('--model_name', default='netG_epoch_4_99.pth', type=str, help='generator model epoch name')
-opt = parser.parse_args()
+import config
 
-UPSCALE_FACTOR = opt.upscale_factor
-MODEL_NAME = opt.model_name
+# parser = argparse.ArgumentParser(description='Test Benchmark Datasets')
+# parser.add_argument('--upscale_factor', default=4, type=int, help='super resolution upscale factor')
+# parser.add_argument('--model_name', default='netG_epoch_4_99.pth', type=str, help='generator model epoch name')
+# opt = parser.parse_args()
+
+UPSCALE_FACTOR = config.upscale_factor
+MODEL_NAME = config.model_path
 
 results = {'img': {'psnr': [], 'ssim': []}}
 
+# 加载训练好的模型
 model = Generator(UPSCALE_FACTOR).eval()
 if torch.cuda.is_available():
     model = model.cuda()
-model.load_state_dict(torch.load('epochs/' + MODEL_NAME))
 
-test_set = TestDatasetFromFolder('../dataset/test_HR/NWPU10', upscale_factor=UPSCALE_FACTOR)
+checkpointG = torch.load('epochs/' + MODEL_NAME, map_location=config.device)
+netG_state_dict = model.state_dict()
+newG_state_dict = {k: v for k, v in checkpointG["state_dict"].items() if k in netG_state_dict}
+netG_state_dict.update(newG_state_dict)
+model.load_state_dict(netG_state_dict)
+
+test_set = TestDatasetFromFolder(config.hr_dir, upscale_factor=UPSCALE_FACTOR)
 test_loader = DataLoader(dataset=test_set, num_workers=0, batch_size=1, shuffle=False)
 test_bar = tqdm(test_loader, desc='[testing benchmark datasets]')
 
@@ -39,8 +47,9 @@ if not os.path.exists(out_path):
 
 for image_name, lr_image, hr_restore_img, hr_image in test_bar:
     image_name = image_name[0]
-    lr_image = Variable(lr_image, volatile=True)
-    hr_image = Variable(hr_image, volatile=True)
+    with torch.no_grad():
+        lr_image = Variable(lr_image)
+        hr_image = Variable(hr_image)
     if torch.cuda.is_available():
         lr_image = lr_image.cuda()
         hr_image = hr_image.cuda()

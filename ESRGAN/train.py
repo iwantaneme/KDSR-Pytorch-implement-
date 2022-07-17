@@ -36,12 +36,12 @@ if __name__ == '__main__':
     #     checkpoint = torch.load(RESUME, 'cuda:0')
     #     START_EPOCH = 1
     # 训练集（urban100和Sun-Hays80组成）和验证集Set14组成
-    train_set = TrainDatasetFromFolder('../dataset/train_HR', crop_size=CROP_SIZE, upscale_factor=UPSCALE_FACTOR)
-    val_set = ValDatasetFromFolder('../dataset/valid_HR', upscale_factor=UPSCALE_FACTOR)
+    train_set = TrainDatasetFromFolder('../dataset/train_HR_NWPU', crop_size=CROP_SIZE, upscale_factor=UPSCALE_FACTOR)
+    val_set = ValDatasetFromFolder('../dataset/valid_HR_NWPU', upscale_factor=UPSCALE_FACTOR)
     train_loader = DataLoader(dataset=train_set, num_workers=4, batch_size=24, shuffle=True)
     val_loader = DataLoader(dataset=val_set, num_workers=4, batch_size=1, shuffle=False)
 
-    netG = Generator(3,3,scale_factor=UPSCALE_FACTOR)
+    netG = Generator(3, 3, scale_factor=UPSCALE_FACTOR)
     print('# generator parameters:', sum(param.numel() for param in netG.parameters()))
     netD = Discriminator()
     print('# discriminator parameters:', sum(param.numel() for param in netD.parameters()))

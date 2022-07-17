@@ -2,7 +2,7 @@ from model.block import *
 import torch.nn as nn
 
 class ESRGAN(nn.Module):
-    def __init__(self, in_channels, out_channels, nf=64, gc=32, scale_factor=4, n_basic_block=23):
+    def __init__(self, in_channels, out_channels, scale_factor, nf=64, gc=32, n_basic_block=23):
         super(ESRGAN, self).__init__()
 
         self.conv1 = nn.Sequential(nn.ReflectionPad2d(1), nn.Conv2d(in_channels, nf, 3), nn.ReLU())

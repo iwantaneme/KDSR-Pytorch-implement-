@@ -22,8 +22,9 @@ class Generator(nn.Module):
             nn.BatchNorm2d(64)
         )
         block8 = [UpsampleBLock(64, 2) for _ in range(upsample_block_num)]
-        block8.append(nn.Conv2d(64, 3, kernel_size=9, padding=4))
+        # block8.append(nn.Conv2d(64, 3, kernel_size=9, padding=4))
         self.block8 = nn.Sequential(*block8)
+        self.block9 = nn.Conv2d(64, 3, kernel_size=9, padding=4)
 
     def forward(self, x):
         block1 = self.block1(x)
@@ -34,8 +35,9 @@ class Generator(nn.Module):
         block6 = self.block6(block5)
         block7 = self.block7(block6)
         block8 = self.block8(block1 + block7)
+        block9 = self.block9(block8)
 
-        return (torch.tanh(block8) + 1) / 2
+        return (torch.tanh(block9) + 1) / 2
 
 
 class Discriminator(nn.Module):
