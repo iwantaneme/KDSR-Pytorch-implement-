@@ -10,36 +10,37 @@ from torch.autograd import Variable
 from torch.utils.data import DataLoader
 from tqdm import tqdm
 
+import config
 import pytorch_ssim
 from data_utils import TrainDatasetFromFolder, ValDatasetFromFolder, display_transform
 from loss import GeneratorLoss
 from model.ESRGAN import ESRGAN as Generator
 from model.Discriminator import Discriminator
 
-parser = argparse.ArgumentParser(description='训练超分模型')
-parser.add_argument('--crop_size', default=120, type=int, help='训练图片裁剪尺寸')
-parser.add_argument('--upscale_factor', default=4, type=int, choices=[2, 4, 8],
-                    help='超分倍数')
-parser.add_argument('--num_epochs', default=100, type=int, help='训练迭代次数')
+# parser = argparse.ArgumentParser(description='训练超分模型')
+# parser.add_argument('--crop_size', default=120, type=int, help='训练图片裁剪尺寸')
+# parser.add_argument('--upscale_factor', default=4, type=int, choices=[2, 4, 8],
+#                     help='超分倍数')
+# parser.add_argument('--num_epochs', default=100, type=int, help='训练迭代次数')
 # parser.add_argument('-start_epoch', default=100, type=int, help='开始次数')
 # parser.add_argument('-resume', default=0,type=int, help='是否继续训练')
 
 if __name__ == '__main__':
-    opt = parser.parse_args()
+    # opt = parser.parse_args()
 
-    CROP_SIZE = opt.crop_size
-    UPSCALE_FACTOR = opt.upscale_factor
-    NUM_EPOCHS = opt.num_epochs
+    CROP_SIZE = config.crop_size
+    UPSCALE_FACTOR = config.upscale_factor
+    NUM_EPOCHS = config.epochs
     # START_EPOCH = opt.start_epoch
     # RESUME = opt.resume
     # if RESUME:
     #     checkpoint = torch.load(RESUME, 'cuda:0')
     #     START_EPOCH = 1
     # 训练集（urban100和Sun-Hays80组成）和验证集Set14组成
-    train_set = TrainDatasetFromFolder('../dataset/train_HR_NWPU', crop_size=CROP_SIZE, upscale_factor=UPSCALE_FACTOR)
-    val_set = ValDatasetFromFolder('../dataset/valid_HR_NWPU', upscale_factor=UPSCALE_FACTOR)
-    train_loader = DataLoader(dataset=train_set, num_workers=4, batch_size=24, shuffle=True)
-    val_loader = DataLoader(dataset=val_set, num_workers=4, batch_size=1, shuffle=False)
+    train_set = TrainDatasetFromFolder(config.train_image_dir, crop_size=CROP_SIZE, upscale_factor=UPSCALE_FACTOR)
+    val_set = ValDatasetFromFolder(config.valid_image_dir, upscale_factor=UPSCALE_FACTOR)
+    train_loader = DataLoader(dataset=train_set, num_workers=config.num_workers, batch_size=config.batch_size_train, shuffle=True)
+    val_loader = DataLoader(dataset=val_set, num_workers=config.num_workers, batch_size=config.batch_size_valid, shuffle=False)
 
     netG = Generator(3, 3, scale_factor=UPSCALE_FACTOR)
     print('# generator parameters:', sum(param.numel() for param in netG.parameters()))
@@ -58,7 +59,29 @@ if __name__ == '__main__':
 
     results = {'d_loss': [], 'g_loss': [], 'd_score': [], 'g_score': [], 'psnr': [], 'ssim': []}
 
-    for epoch in range(1, NUM_EPOCHS + 1):
+    if config.resume:
+        print("Check whether the pretrained model is restored...")
+        # Load checkpoint model
+        checkpointG = torch.load(config.pretrain_G, map_location=config.device)
+        checkpointD = torch.load(config.pretrain_D, map_location=config.device)
+        # Restore the parameters in the training node to this point
+        # config.start_epoch = checkpointG["epoch"] + 1
+        # Load checkpoint state dict. Extract the fitted model weights
+        netG_state_dict = netG.state_dict()
+        netD_state_dict = netD.state_dict()
+        # newG_state_dict = {k: v for k, v in checkpointG["state_dict"].items() if k in netG_state_dict}
+        # newD_state_dict = {k: v for k, v in checkpointD["state_dict"].items() if k in netD_state_dict}
+        newG_state_dict = {k: v for k, v in checkpointG.items() if k in netG_state_dict}
+        newD_state_dict = {k: v for k, v in checkpointD.items() if k in netD_state_dict}
+        # Overwrite the pretrained model weights to the current model
+        netG_state_dict.update(newG_state_dict)
+        netD_state_dict.update(newD_state_dict)
+        netG.load_state_dict(netG_state_dict)
+        netD.load_state_dict(netD_state_dict)
+        print("Loaded pretrained model weights.")
+
+
+    for epoch in range(config.start_epoch, config.epochs + 1):
     # for epoch in range(START_EPOCH, NUM_EPOCHS + 1):
         train_bar = tqdm(train_loader)
         running_results = {'batch_sizes': 0, 'd_loss': 0, 'g_loss': 0, 'd_score': 0, 'g_score': 0}
@@ -159,8 +182,10 @@ if __name__ == '__main__':
                 index += 1
 
         # save model parameters
-        torch.save(netG.state_dict(), 'epochs/netG_epoch_%d_%d.pth' % (UPSCALE_FACTOR, epoch))
-        torch.save(netD.state_dict(), 'epochs/netD_epoch_%d_%d.pth' % (UPSCALE_FACTOR, epoch))
+        # torch.save(netG.state_dict(), 'epochs/netG_epoch_%d_%d.pth' % (UPSCALE_FACTOR, epoch))
+        # torch.save(netD.state_dict(), 'epochs/netD_epoch_%d_%d.pth' % (UPSCALE_FACTOR, epoch))
+        torch.save({"epoch": epoch, "state_dict": netG.state_dict()}, 'epochs/netG_epoch_%d_%d.pth' % (UPSCALE_FACTOR, epoch))
+        torch.save({"epoch": epoch, "state_dict": netD.state_dict()}, 'epochs/netD_epoch_%d_%d.pth' % (UPSCALE_FACTOR, epoch))
         # save loss\scores\psnr\ssim
         results['d_loss'].append(running_results['d_loss'] / running_results['batch_sizes'])
         results['g_loss'].append(running_results['g_loss'] / running_results['batch_sizes'])
@@ -169,10 +194,10 @@ if __name__ == '__main__':
         results['psnr'].append(valing_results['psnr'])
         results['ssim'].append(valing_results['ssim'])
 
-        if epoch % 10 == 0 and epoch != 0:
+        if epoch % 5 == 0 and epoch != 0:
             out_path = 'statistics/'
             data_frame = pd.DataFrame(
                 data={'Loss_D': results['d_loss'], 'Loss_G': results['g_loss'], 'Score_D': results['d_score'],
                       'Score_G': results['g_score'], 'PSNR': results['psnr'], 'SSIM': results['ssim']},
-                index=range(1, epoch + 1))
-            data_frame.to_csv(out_path + 'srf_' + str(UPSCALE_FACTOR) + '_train_results.csv', index_label='Epoch')
+                index=range(config.start_epoch, epoch + 1))
+            data_frame.to_csv(out_path + 'srf_' + str(UPSCALE_FACTOR) + f'_train_results{config.start_epoch}.csv', index_label='Epoch')

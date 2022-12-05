@@ -36,7 +36,7 @@ upscale_factor = 4
 num_channel = 1
 
 # Current configuration parameter method
-mode = "valid"
+mode = "train"
 
 # Experiment name, easy to save weights and log files
 exp_name = "fsrcnn_x4"
@@ -53,8 +53,8 @@ if mode == "train":
     num_workers = 4
 
     # Incremental training and migration training
-    start_epoch = 20
-    resume = '1'
+    start_epoch = 100
+    resume = ''
     if resume == '1':
         pretrain_G = 'epochs/netG_epoch_%d_%d.pth' % (upscale_factor, start_epoch)
         pretrain_D = 'epochs/netD_epoch_%d_%d.pth' % (upscale_factor, start_epoch)

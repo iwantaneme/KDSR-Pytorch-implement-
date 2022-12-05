@@ -16,7 +16,7 @@ from model.ESRGAN import ESRGAN as Generator
 
 parser = argparse.ArgumentParser(description='Test Benchmark Datasets')
 parser.add_argument('--upscale_factor', default=4, type=int, help='super resolution upscale factor')
-parser.add_argument('--model_name', default='netG_epoch_4_100_1.pth', type=str, help='generator model epoch name')
+parser.add_argument('--model_name', default='netG_epoch_4_100.pth', type=str, help='generator model epoch name')
 opt = parser.parse_args()
 
 UPSCALE_FACTOR = opt.upscale_factor
