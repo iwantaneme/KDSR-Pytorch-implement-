@@ -16,7 +16,7 @@ import torch.nn.functional as F
 class Loss(nn.modules.loss._Loss):
     def __init__(self, feature_distilation_type):
         super(Loss, self).__init__()
-        #feature_distilation_type 为特征蒸馏类型
+        # feature_distilation_type 为特征蒸馏类型
         print('Preparing loss function:')
 
         self.loss = []
@@ -58,7 +58,6 @@ class Loss(nn.modules.loss._Loss):
         self.log[-1, 1] += TS_loss.item()
 
         loss_sum = DS_loss + TS_loss
-
 
         assert (len(student_fms) == len(teacher_fms))
         assert (len(student_fms) == len(self.feature_loss_module))

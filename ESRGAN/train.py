@@ -65,14 +65,14 @@ if __name__ == '__main__':
         checkpointG = torch.load(config.pretrain_G, map_location=config.device)
         checkpointD = torch.load(config.pretrain_D, map_location=config.device)
         # Restore the parameters in the training node to this point
-        # config.start_epoch = checkpointG["epoch"] + 1
+        config.start_epoch = checkpointG["epoch"] + 1
         # Load checkpoint state dict. Extract the fitted model weights
         netG_state_dict = netG.state_dict()
         netD_state_dict = netD.state_dict()
-        # newG_state_dict = {k: v for k, v in checkpointG["state_dict"].items() if k in netG_state_dict}
-        # newD_state_dict = {k: v for k, v in checkpointD["state_dict"].items() if k in netD_state_dict}
-        newG_state_dict = {k: v for k, v in checkpointG.items() if k in netG_state_dict}
-        newD_state_dict = {k: v for k, v in checkpointD.items() if k in netD_state_dict}
+        newG_state_dict = {k: v for k, v in checkpointG["state_dict"].items() if k in netG_state_dict}
+        newD_state_dict = {k: v for k, v in checkpointD["state_dict"].items() if k in netD_state_dict}
+        # newG_state_dict = {k: v for k, v in checkpointG.items() if k in netG_state_dict}
+        # newD_state_dict = {k: v for k, v in checkpointD.items() if k in netD_state_dict}
         # Overwrite the pretrained model weights to the current model
         netG_state_dict.update(newG_state_dict)
         netD_state_dict.update(newD_state_dict)
@@ -169,23 +169,24 @@ if __name__ == '__main__':
                     desc='[converting LR images to SR images] PSNR: %.4f dB SSIM: %.4f' % (
                         valing_results['psnr'], valing_results['ssim']))
 
-                val_images.extend(
-                    [display_transform()(val_hr_restore.squeeze(0)), display_transform()(hr.data.cpu().squeeze(0)),
-                     display_transform()(sr.data.cpu().squeeze(0))])
-            val_images = torch.stack(val_images)
-            val_images = torch.chunk(val_images, val_images.size(0) // 15)
-            val_save_bar = tqdm(val_images, desc='[saving training results]')
-            index = 1
-            for image in val_save_bar:
-                image = utils.make_grid(image, nrow=3, padding=5)
-                utils.save_image(image, out_path + 'epoch_%d_index_%d.png' % (epoch, index), padding=5)
-                index += 1
+            #     val_images.extend(
+            #         [display_transform()(val_hr_restore.squeeze(0)), display_transform()(hr.data.cpu().squeeze(0)),
+            #          display_transform()(sr.data.cpu().squeeze(0))])
+            # val_images = torch.stack(val_images)
+            # val_images = torch.chunk(val_images, val_images.size(0) // 15)
+            # val_save_bar = tqdm(val_images, desc='[saving training results]')
+            # index = 1
+            # for image in val_save_bar:
+            #     image = utils.make_grid(image, nrow=3, padding=5)
+            #     utils.save_image(image, out_path + 'epoch_%d_index_%d.png' % (epoch, index), padding=5)
+            #     index += 1
 
         # save model parameters
-        # torch.save(netG.state_dict(), 'epochs/netG_epoch_%d_%d.pth' % (UPSCALE_FACTOR, epoch))
-        # torch.save(netD.state_dict(), 'epochs/netD_epoch_%d_%d.pth' % (UPSCALE_FACTOR, epoch))
-        torch.save({"epoch": epoch, "state_dict": netG.state_dict()}, 'epochs/netG_epoch_%d_%d.pth' % (UPSCALE_FACTOR, epoch))
-        torch.save({"epoch": epoch, "state_dict": netD.state_dict()}, 'epochs/netD_epoch_%d_%d.pth' % (UPSCALE_FACTOR, epoch))
+        if epoch % 5 == 0:
+            # torch.save(netG.state_dict(), 'epochs/netG_epoch_%d_%d.pth' % (UPSCALE_FACTOR, epoch))
+            # torch.save(netD.state_dict(), 'epochs/netD_epoch_%d_%d.pth' % (UPSCALE_FACTOR, epoch))
+            torch.save({"epoch": epoch, "state_dict": netG.state_dict()}, 'epochs/netG_epoch_%d_%d.pth' % (UPSCALE_FACTOR, epoch))
+            torch.save({"epoch": epoch, "state_dict": netD.state_dict()}, 'epochs/netD_epoch_%d_%d.pth' % (UPSCALE_FACTOR, epoch))
         # save loss\scores\psnr\ssim
         results['d_loss'].append(running_results['d_loss'] / running_results['batch_sizes'])
         results['g_loss'].append(running_results['g_loss'] / running_results['batch_sizes'])

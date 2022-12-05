@@ -39,10 +39,10 @@ def train_lr_transform_native(crop_size):
 
 def display_transform():
     return Compose([
-        ToPILImage(),
+        # ToPILImage(),
         Resize(400),
         CenterCrop(400),
-        ToTensor()
+        # ToTensor()
     ])
 
 

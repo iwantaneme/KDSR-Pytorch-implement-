@@ -65,7 +65,10 @@ for image_name, lr_image, hr_restore_img, hr_image in test_bar:
     image = utils.make_grid(test_images, nrow=3, padding=5)
     utils.save_image(image, out_path + image_name.split('.')[0] + '_psnr_%.4f_ssim_%.4f.' % (psnr, ssim) +
                      image_name.split('.')[-1], padding=5)
-
+    utils.save_image(hr_restore_img, out_path + image_name.split('.')[0] + '_bicubic.' +
+                     image_name.split('.')[-1], padding=0)
+    utils.save_image(sr_image, out_path + image_name.split('.')[0] + '_SRGAN.' +
+                     image_name.split('.')[-1], padding=0)
     # save psnr\ssim
     results['img']['psnr'].append(psnr)
     results['img']['ssim'].append(ssim)

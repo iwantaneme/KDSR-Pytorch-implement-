@@ -36,7 +36,7 @@ upscale_factor = 4
 num_channel = 1
 
 # Current configuration parameter method
-mode = "train"
+mode = "valid"
 
 # Experiment name, easy to save weights and log files
 exp_name = "fsrcnn_x4"
@@ -53,7 +53,15 @@ if mode == "train":
     num_workers = 4
 
     # Incremental training and migration training
-    start_epoch = 100
+    start_epoch = 135
+
+
+    teacher_epoch = 135
+    teacher_start_epoch = 1
+    teacher_model = f"../ESRGAN/epochs/netG_epoch_4_{teacher_epoch}.pth"
+    teacher_model = f"../ESRGAN/epochs/netG_epoch_4_{teacher_epoch}.pth"
+
+
     resume = ''
     if resume == '1':
         pretrain_G = 'epochs/netG_epoch_%d_%d.pth' % (upscale_factor, start_epoch)
@@ -77,8 +85,11 @@ if mode == "valid":
     # hr_dir = f"data/Set5/GTmod12"
     # lr_dir = f"data/canon/test/4/LR/"
     # hr_dir = f"data/canon/test/4/HR/"
+    epoch = 65
 
     lr_dir = f"data/test/"
     hr_dir = f"../dataset/test_HR/NWPU10"
 
-    model_path = f"netG_epoch_4_80.pth"
+    model_path = f"netG_epoch_4_{epoch}.pth"
+    student_model_path = f"student_epoch_4_{epoch}.pth"
+

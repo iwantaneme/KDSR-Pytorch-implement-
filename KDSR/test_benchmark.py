@@ -9,27 +9,32 @@ import torchvision.utils as utils
 from torch.autograd import Variable
 from torch.utils.data import DataLoader
 from tqdm import tqdm
+import config
 
 import pytorch_ssim
 from data_utils import TestDatasetFromFolder, display_transform, TrainDatasetFromFolder
 from model.ESRGAN import ESRGAN as Generator
 
-parser = argparse.ArgumentParser(description='Test Benchmark Datasets')
-parser.add_argument('--upscale_factor', default=4, type=int, help='super resolution upscale factor')
-parser.add_argument('--model_name', default='student_epoch_4_40.pth', type=str, help='generator model epoch name')
-opt = parser.parse_args()
+# parser = argparse.ArgumentParser(description='Test Benchmark Datasets')
+# parser.add_argument('--upscale_factor', default=4, type=int, help='super resolution upscale factor')
+# parser.add_argument('--model_name', default='student_epoch_4_65.pth', type=str, help='generator model epoch name')
+# opt = parser.parse_args()
 
-UPSCALE_FACTOR = opt.upscale_factor
-MODEL_NAME = opt.model_name
+UPSCALE_FACTOR = config.upscale_factor
+MODEL_NAME = config.student_model_path
 
 results = {'img': {'psnr': [], 'ssim': []}}
 
-model =Generator(3,3,scale_factor=4,n_basic_block=10).eval()
+model = Generator(3, 3, scale_factor=4, n_basic_block=10).eval()
 if torch.cuda.is_available():
     model = model.cuda()
-model.load_state_dict(torch.load('epochs/' + MODEL_NAME))
+checkpointG = torch.load('epochs/' + MODEL_NAME, map_location=config.device)
+netS_state_dict = model.state_dict()
+newS_state_dict = {k: v for k, v in checkpointG["state_dict"].items() if k in netS_state_dict}
+netS_state_dict.update(newS_state_dict)
+model.load_state_dict(netS_state_dict)
 
-test_set = TestDatasetFromFolder('../dataset/test_HR/NWPU10', upscale_factor=UPSCALE_FACTOR)
+test_set = TestDatasetFromFolder(config.hr_dir, upscale_factor=UPSCALE_FACTOR)
 
 test_loader = DataLoader(dataset=test_set, num_workers=0, batch_size=1, shuffle=False)
 
@@ -41,8 +46,9 @@ if not os.path.exists(out_path):
 
 for image_name, lr_image, hr_restore_img, hr_image in test_bar:
     image_name = image_name[0]
-    lr_image = Variable(lr_image, volatile=True)
-    hr_image = Variable(hr_image, volatile=True)
+    with torch.no_grad():
+        lr_image = Variable(lr_image)
+        hr_image = Variable(hr_image)
     if torch.cuda.is_available():
         lr_image = lr_image.cuda()
         hr_image = hr_image.cuda()
@@ -58,7 +64,10 @@ for image_name, lr_image, hr_restore_img, hr_image in test_bar:
     image = utils.make_grid(test_images, nrow=3, padding=5)
     utils.save_image(image, out_path + image_name.split('.')[0] + '_psnr_%.4f_ssim_%.4f.' % (psnr, ssim) +
                      image_name.split('.')[-1], padding=5)
-
+    utils.save_image(hr_restore_img, out_path + image_name.split('.')[0] + '_bicubic.' +
+                     image_name.split('.')[-1], padding=0)
+    utils.save_image(sr_image, out_path + image_name.split('.')[0] + '_KDSR.' +
+                     image_name.split('.')[-1], padding=0)
     # save psnr\ssim
     results['img']['psnr'].append(psnr)
     results['img']['ssim'].append(ssim)
